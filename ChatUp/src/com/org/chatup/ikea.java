@@ -27,7 +27,7 @@ public class ikea extends HttpServlet {
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		
+/*		
 		response.setContentType("application/json");
 		PrintWriter writer = response.getWriter();
 		response.setContentType("text/html");
@@ -62,6 +62,8 @@ public class ikea extends HttpServlet {
 		
 		writer.print(result);
 		writer.flush();
+*/
+		
 	}
 
 	/**
