@@ -20,7 +20,7 @@ import org.openqa.selenium.htmlunit.HtmlUnitDriver;
  * Servlet implementation class webScraper
  */
 @WebServlet("/webScraper")
-public class webScraper extends HttpServlet {
+public class showTiming extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	
 	/**
@@ -28,44 +28,9 @@ public class webScraper extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
+		scrape("The Rifleman");
+		//scrape("aksjbkvjsd");
 		
-		WebDriver driver = new FirefoxDriver();
-		
-		//driver.navigate().to("http://testing-ground.scraping.pro/login");
-		//WebElement userName_editbox = driver.findElement(By.id("usr"));
-        //WebElement password_editbox = driver.findElement(By.id("pwd"));
-        //WebElement submit_button = driver.findElement(By.xpath("//input[@value='Login']"));
- 
-        //userName_editbox.sendKeys("admin");
-        //password_editbox.sendKeys("12345");
-        //submit_button.click();
-		
-        //String text = driver.findElement(By.xpath("//div[@id='case_login']/h3")).getText();
-/*		
-		driver.navigate().to("http://www.optimum.com/lineup.jsp?regionId=" + "38");
-		String text = driver.findElement(By.cssSelector("div#main").cssSelector("div#content").cssSelector("div.padborders").cssSelector("div.columns")).getText();
-	
-		System.out.println(text);
-        driver.close();
-*/
-		driver.navigate().to("http://xfinitytv.comcast.net/tv-listings");
-		WebElement searchBox = driver.findElement(By.cssSelector("div.mod-search-field-wrapper").cssSelector("input[type=text]"));
-		WebElement searchButton = driver.findElement(By.cssSelector("button.button.search.font-icon-search"));
-		//searchBox.sendKeys("The Rifleman");
-		searchBox.sendKeys("aksjbkvjsd");
-		searchButton.click();
-		
-		WebElement div = driver.findElement(By.cssSelector("div#searchList > *:first-child"));
-		String res = div.getAttribute("id").toString();
-		
-		if(res.equals("noResults")) {
-			System.out.println("Your search did not match any results");
-		}
-		else {
-			
-		}
-		
-		driver.close();
 	}
 
 	/**
@@ -73,6 +38,41 @@ public class webScraper extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
+	}
+	
+	protected void scrape(String title) {
+		WebDriver driver = new FirefoxDriver();
+
+		driver.navigate().to("http://xfinitytv.comcast.net/tv-listings");
+		WebElement searchBox = driver.findElement(By.cssSelector("div.mod-search-field-wrapper").cssSelector("input[type=text]"));
+		WebElement searchButton = driver.findElement(By.cssSelector("button.button.search.font-icon-search"));
+		searchBox.sendKeys(title);
+		searchButton.click();
+		
+		WebElement div = driver.findElement(By.cssSelector("div#searchList > *:first-child"));
+		
+		
+		String res = div.getAttribute("id").toString();
+		
+		if(res.equals("noResults")) {
+			System.out.println("Your search did not match any results");
+			System.out.println(res);
+		}
+		else {
+			List<WebElement> titleMatches = driver.findElements(By.cssSelector("div#searchList > *:first-child > *"));
+			
+			if(titleMatches.size() > 1) {
+				for(WebElement temp : titleMatches) {
+					String t = temp.findElement(By.cssSelector("div.entity_info > h3 > a")).getAttribute("name");
+					System.out.println(t);
+				}
+			}
+			else {
+				
+			}
+		}
+		
+		driver.close();
 	}
 
 }
