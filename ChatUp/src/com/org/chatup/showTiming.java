@@ -22,14 +22,20 @@ import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 @WebServlet("/webScraper")
 public class showTiming extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	private int  nth = -1;
 	
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
-		scrape("The Rifleman");
-		//scrape("aksjbkvjsd");
+		
+		//	Determine if user is searching for a movie or entering the movie number
+		//	Update nth
+		
+		//scrape("The Rifleman", nth);
+		scrape("Get Smart", nth);
+		//scrape("aksjbkvjsd", nth);
 		
 	}
 
@@ -40,7 +46,7 @@ public class showTiming extends HttpServlet {
 		// TODO Auto-generated method stub
 	}
 	
-	protected void scrape(String title) {
+	protected void scrape(String title, int nth) {
 		WebDriver driver = new FirefoxDriver();
 
 		driver.navigate().to("http://xfinitytv.comcast.net/tv-listings");
@@ -56,23 +62,48 @@ public class showTiming extends HttpServlet {
 		
 		if(res.equals("noResults")) {
 			System.out.println("Your search did not match any results");
-			System.out.println(res);
 		}
 		else {
 			List<WebElement> titleMatches = driver.findElements(By.cssSelector("div#searchList > *:first-child > *"));
 			
-			if(titleMatches.size() > 1) {
-				for(WebElement temp : titleMatches) {
-					String t = temp.findElement(By.cssSelector("div.entity_info > h3 > a")).getAttribute("name");
-					System.out.println(t);
+			if(nth == -1) {		//	1st time: user searched movie name
+				
+				if(titleMatches.size() > 1) {
+					int count = 1;
+					for(WebElement temp : titleMatches) {
+						String t = temp.findElement(By.cssSelector("div.entity_info > h3 > a")).getAttribute("name");
+						System.out.println(count + ". " + t);
+						count++;
+					}
+					// Temp
+					titleMatches.get(0).findElement(By.cssSelector("div.entity_info > h3 > a")).click();
+					String timing = driver.findElement(By.cssSelector("#actionPanelTvListings > ul > li > div.details-info > div.record-time")).getText();					
+					System.out.println(timing);
+				}
+				else {
+					System.out.println("Only one match");
+					titleMatches.get(0).findElement(By.cssSelector("div.entity_info > h3 > a")).click();
+					
+					getShowTiming();
 				}
 			}
+			
 			else {
-				
+				if((nth > 0) && (nth < titleMatches.size())) {
+					titleMatches.get(nth).findElement(By.cssSelector("div.entity_info > h3 > a")).click();
+					
+					getShowTiming();
+				}
+				else {
+					System.out.println("Invalid option selected");
+				}
 			}
 		}
 		
 		driver.close();
 	}
-
+	
+	protected void getShowTiming() {
+		System.out.println("Inside getShowTiming");
+	}
 }
