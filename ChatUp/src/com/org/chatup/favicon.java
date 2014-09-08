@@ -41,7 +41,7 @@ public class favicon extends HttpServlet {
 			String favicon = "http://g.etfv.co/"+ baseurl;	// Favicon
 			//System.out.println(title+"\t"+baseurl+"\t"+favicon);
 			
-			if((title.toLowerCase().contains("winescapes")) || (title.toLowerCase().contains("ikea")) || (title.toLowerCase().contains("transit")) || (title.toLowerCase().contains("optimum"))) {
+			if((title.toLowerCase().contains("winescapes")) || (title.toLowerCase().contains("ikea")) || (title.toLowerCase().contains("transit")) || (title.toLowerCase().contains("optimum") || (title.toLowerCase().contains("comcast")))) {
 				writer.print(title + ";" + favicon + ";" + baseurl);
 			}
 			else {
