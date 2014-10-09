@@ -41,7 +41,9 @@ public class winescapes extends HttpServlet {
 		
 		response.setContentType("application/json");
 		PrintWriter writer = response.getWriter();
+		
 		String varietal = "", country =  "", region = "", type = "";
+		String API_KEY = "chatup780480", EMAIL = "vlnvv14@gmail.com", WINE_NAME = "";
 		
 		//	Get list of all regions, countries, etc. from winescape.net
 		ArrayList<String> regionList = region(), countryList = country(), varietalList = varietal(), typeList = type();
@@ -55,7 +57,7 @@ public class winescapes extends HttpServlet {
 		}
 		
 		//	Get the actual command in String
-		String param="", json = "";
+		String param ="", json = "";
 		try {
 			JSONObject jsonReq = new JSONObject(sb.toString());
 			param = (String) jsonReq.get("request");
@@ -149,7 +151,14 @@ public class winescapes extends HttpServlet {
 			json = Jsoup.connect("http://winescapes.net/web/uploadImage.php?command=WINE_PRICE_LIST&wineName=&region=&wineType=&verietal=&price=15&vintage=&country=&lat=40.4862157&lng=-74.45181880000001&userID=280&page=1").ignoreContentType(true).execute().body();
 		}
 		else {
-			json = Jsoup.connect("http://winescapes.net/web/uploadImage.php?command=LATEST_WINE&wineName=&country=" + country + "&region=" + region + "&wineType=" + type + "&varietal=" + varietal + "&vintage=&advanceSearch=true&userID=280&search=true&lat=40.4862157&lng=-74.45181880000001").ignoreContentType(true).execute().body();
+			//	Scraping URL
+			//json = Jsoup.connect("http://winescapes.net/web/uploadImage.php?command=LATEST_WINE&wineName=&country=" + country + "&region=" + region + "&wineType=" + type + "&varietal=" + varietal + "&vintage=&advanceSearch=true&userID=280&search=true&lat=40.4862157&lng=-74.45181880000001").ignoreContentType(true).execute().body();
+			
+			//	Simple search if only wine name is given
+			if(("".compareTo(country) == 0) && ("".compareTo(region) == 0) && ("".compareTo(type) == 0) && ("".compareTo(varietal) == 0))
+				json = Jsoup.connect("http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME).ignoreContentType(true).execute().body();
+			else
+				json = Jsoup.connect("http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_ADVANCED_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME + "&ws_country=" + country + "&ws_region=" + region + "&ws_varietal=" + varietal + "&ws_winetype=" + type).ignoreContentType(true).execute().body();
 		}
 		
 		JSONArray jsonArr = new JSONArray();
