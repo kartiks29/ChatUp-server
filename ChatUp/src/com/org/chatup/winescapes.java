@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -42,7 +43,7 @@ public class winescapes extends HttpServlet {
 		response.setContentType("application/json");
 		PrintWriter writer = response.getWriter();
 		
-		String varietal = "", country =  "", region = "", type = "";
+		String varietal = "", country =  "", region = "", type = "", vintage = "";
 		String API_KEY = "chatup780480", EMAIL = "vlnvv14@gmail.com", WINE_NAME = "";
 		
 		//	Get list of all regions, countries, etc. from winescape.net
@@ -68,10 +69,8 @@ public class winescapes extends HttpServlet {
 		}		
 		
 		ArrayList<String> cat = new ArrayList<>();
-		for(String t : param.split(" ")) {
-			//System.out.println(t);
+		for(String t : param.split(" "))
 			cat.add(t);
-		}
 
 		//	Supporting all combinations (multiple categories)
 		
@@ -91,12 +90,9 @@ public class winescapes extends HttpServlet {
 				if(! "".equals(region)) {
 					continue;
 				}
-				
-				//System.out.println("Region: " + region);
 			}
 			if("".equals(varietal)) {
 				varietal = containsWord(varietalList, word);
-				//System.out.println("Varietal: " + varietal);
 				
 				if(i < cat.size() - 1) {
 					t = containsBoth(varietalList, word + " " + cat.get(i + 1));
@@ -120,7 +116,6 @@ public class winescapes extends HttpServlet {
 				if(! "".equals(country)) {
 					continue;
 				}
-				//System.out.println("Country: " + country);
 			}
 			if("".equals(type)) {
 				type = containsWord(typeList, word);
@@ -134,89 +129,108 @@ public class winescapes extends HttpServlet {
 				if(! "".equals(type)) {
 					continue;
 				}
-				//System.out.println("Type: " + type);
 			}
 		}
-			
-			//System.out.println("Region: " + region);
-			//System.out.println("Country: " + country);
-			//System.out.println("Varietal: " + varietal);
-			//System.out.println("Type: " + type);
 		
+		//	Extract WINE NAME from REQUEST string
+		WINE_NAME = param;
+		String regex = "\\s*\\b" + country + "\\b\\s*";
+		WINE_NAME = WINE_NAME.replaceAll(regex, "");
+		regex = "\\s*\\b" + type + "\\b\\s*";
+		WINE_NAME = WINE_NAME.replaceAll(regex, "");
+		regex = "\\s*\\b" + region + "\\b\\s*";
+		WINE_NAME = WINE_NAME.replaceAll(regex, "");
+		regex = "\\s*\\b" + varietal + "\\b\\s*";
+		WINE_NAME = WINE_NAME.replaceAll(regex, "");
 		
+		//	Extract VINTAGE
+		Scanner in = new Scanner(WINE_NAME).useDelimiter("[^0-9]+");
+		vintage = in.nextInt() + "";
+		WINE_NAME = WINE_NAME.replaceAll("[0-9]", "");
+
 		
+		//	Scraping URL
+		//json = Jsoup.connect("http://winescapes.net/web/uploadImage.php?command=LATEST_WINE&wineName=&country=" + country + "&region=" + region + "&wineType=" + type + "&varietal=" + varietal + "&vintage=&advanceSearch=true&userID=280&search=true&lat=40.4862157&lng=-74.45181880000001").ignoreContentType(true).execute().body();
 		
-		if(param.equals("budget")) {
-			System.out.println("Budget");
-			json = Jsoup.connect("http://winescapes.net/web/uploadImage.php?command=WINE_PRICE_LIST&wineName=&region=&wineType=&verietal=&price=15&vintage=&country=&lat=40.4862157&lng=-74.45181880000001&userID=280&page=1").ignoreContentType(true).execute().body();
-		}
+		if(("".compareTo(country) == 0) && ("".compareTo(region) == 0) && ("".compareTo(type) == 0) && ("".compareTo(varietal) == 0) && ("".compareTo(vintage) == 0))
+			json = Jsoup.connect("http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME).ignoreContentType(true).execute().body();
 		else {
-			//	Scraping URL
-			//json = Jsoup.connect("http://winescapes.net/web/uploadImage.php?command=LATEST_WINE&wineName=&country=" + country + "&region=" + region + "&wineType=" + type + "&varietal=" + varietal + "&vintage=&advanceSearch=true&userID=280&search=true&lat=40.4862157&lng=-74.45181880000001").ignoreContentType(true).execute().body();
+			//	Base URL
+			String url = "http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_ADVANCED_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME;
 			
-			//	Simple search if only wine name is given
-			if(("".compareTo(country) == 0) && ("".compareTo(region) == 0) && ("".compareTo(type) == 0) && ("".compareTo(varietal) == 0))
-				json = Jsoup.connect("http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME).ignoreContentType(true).execute().body();
-			else
-				json = Jsoup.connect("http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_ADVANCED_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME + "&ws_country=" + country + "&ws_region=" + region + "&ws_varietal=" + varietal + "&ws_winetype=" + type).ignoreContentType(true).execute().body();
+			//	Build URL based on parameters
+			if("".compareTo(country) != 0) {
+				url += "&ws_country=" + country;
+			}
+			if("".compareTo(region) != 0) {
+				url += "&ws_region=" + region;
+			}
+			if("".compareTo(varietal) != 0) {
+				url += "&ws_varietal=" + varietal;
+			}
+			if("".compareTo(type) != 0) {
+				url += "&ws_winetype=" + type;
+			}
+			if("".compareTo(vintage) != 0) {
+				url += "&ws_vintage=" + vintage;
+			}
+			json = Jsoup.connect(url).ignoreContentType(true).execute().body();
 		}
 		
 		JSONArray jsonArr = new JSONArray();
-		String json_new = "";
-		
+		String failure_msg = "";
+
 		try {
-			json_new = "{'x':" + json + "}";
-			JSONObject jObject = new JSONObject(json_new);
-			JSONArray jArray = jObject.getJSONArray("x");
+			JSONObject jObject = new JSONObject(json);
 			
-			for(int i = 0; i < jArray.length(); i++) {
-				JSONObject jsonObj = new JSONObject();
-				JSONObject jObj = jArray.getJSONObject(i);
-				jsonObj.put("wine_name", jObj.getString("wine_name"));
-				jsonArr.put(jsonObj);
+			//	failure_msg NOT EMPTY if API returns error
+			if("FAIL".compareTo(jObject.getString("status")) == 0)
+				failure_msg = jObject.getString("response_text");
+			
+			//	SUCCESS. Now check for 
+			else {
+				JSONArray jArray = jObject.getJSONArray("wine_list");
+				for(int i = 0; i < jArray.length(); i++) {
+					JSONObject jsonObj = new JSONObject();
+					JSONObject jObj = jArray.getJSONObject(i);
+					jsonObj.put("wine_name", jObj.getString("wine_name"));
+					jsonArr.put(jsonObj);
+				}
 			}
-			
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
 		
-		if(jsonArr.toString().length() <= 2) {
-			writer.print("No wines found for this category");
-		}
+		
+		//	API returned ERROR if failure_msg NOT EMPTY
+		if("".compareTo(failure_msg) != 0)
+			writer.print(failure_msg);
+		
 		else {
-			
-			if((region.equals("")) && (varietal.equals("")) && (country.equals("")) && (type.equals("")) && (!param.equals("budget"))) {
-				
-				//	Need to return popular keywords
-				String popular = "{\"response\":" + "\"Popular keywords are:\\n1. Chardonnay\\n2. Italy\\n3. Napa Valley"
-						+ "\\n4. Red" + "\"}";
-				writer.print(popular);
+			//	wine_list is EMPTY
+			if(jsonArr.toString().length() <= 2) {
+				writer.print("No wines found for this category");
 			}
+			
 			else {
 				//	Parse and return the result in JSON
-				String result = jsonArr.toString(), result_new = "{'x':" + result + "}";
-	            JSONObject jObject;
-	            JSONArray jArray;
-	            try {
-	                jObject = new JSONObject(result_new);
-	                jArray = jObject.getJSONArray("x");
-	                result = "";
+				String result = "";
+	            
+				try {
+	            	for (int i = 0; i < jsonArr.length(); i++) {
 
-	                for (int i = 0; i < jArray.length(); i++) {
-
-	                    JSONObject jObj = jArray.getJSONObject(i);
+	                    JSONObject jObj = jsonArr.getJSONObject(i);
 	                    result += (i + 1) + ". " + jObj.getString("wine_name") + "\\n";
 	                }
 	            } catch (JSONException e) {
 	                e.printStackTrace();
 	            }
 				
-	            result = result.replace("\"", "\\\"");
-				result = "{\"response\":\"" + result + "\"}";
-				//System.out.println(result);
+	            result = "{\"response\":\"" + result + "\"}";
 				writer.print(result);
 			}
 		}
+
 		writer.flush();
 	}
 	
