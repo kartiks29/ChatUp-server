@@ -25,6 +25,7 @@ import org.jsoup.Jsoup;
 @WebServlet("/winescapes")
 public class winescapes extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	private Scanner scanner;
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
@@ -144,9 +145,12 @@ public class winescapes extends HttpServlet {
 		WINE_NAME = WINE_NAME.replaceAll(regex, "");
 		
 		//	Extract VINTAGE
-		Scanner in = new Scanner(WINE_NAME).useDelimiter("[^0-9]+");
-		vintage = in.nextInt() + "";
-		WINE_NAME = WINE_NAME.replaceAll("[0-9]", "");
+		if(WINE_NAME.matches(".*\\d.*")) {
+			scanner = new Scanner(WINE_NAME);
+			Scanner in = scanner.useDelimiter("[^0-9]+");
+			vintage = in.nextInt() + "";
+			WINE_NAME = WINE_NAME.replaceAll("[0-9]", "");
+		}
 
 		
 		//	Scraping URL
