@@ -135,49 +135,47 @@ public class winescapes extends HttpServlet {
 		
 		//	Extract WINE NAME from REQUEST string
 		WINE_NAME = param;
-		String regex = "\\s*\\b" + country + "\\b\\s*";
-		WINE_NAME = WINE_NAME.replaceAll(regex, "");
-		regex = "\\s*\\b" + type + "\\b\\s*";
-		WINE_NAME = WINE_NAME.replaceAll(regex, "");
-		regex = "\\s*\\b" + region + "\\b\\s*";
-		WINE_NAME = WINE_NAME.replaceAll(regex, "");
-		regex = "\\s*\\b" + varietal + "\\b\\s*";
-		WINE_NAME = WINE_NAME.replaceAll(regex, "");
+		
+		WINE_NAME = WINE_NAME.replace(country, "");
+		//System.out.println("Country: " + country);
+		
+		WINE_NAME = WINE_NAME.replace(type, "");
+		//System.out.println("Type: " + type);
+		
+		WINE_NAME = WINE_NAME.replace(region, "");
+		//System.out.println("Region: " + region);
+		
+		WINE_NAME = WINE_NAME.replace(varietal, "");
+		//System.out.println("Varietal: " + varietal);
 		
 		//	Extract VINTAGE
 		if(WINE_NAME.matches(".*\\d.*")) {
 			scanner = new Scanner(WINE_NAME);
 			Scanner in = scanner.useDelimiter("[^0-9]+");
 			vintage = in.nextInt() + "";
-			WINE_NAME = WINE_NAME.replaceAll("[0-9]", "");
+			WINE_NAME = WINE_NAME.replaceAll("[0-9]", "").trim();
+			//System.out.println("Vintage: " + vintage);
 		}
+		//System.out.println("WineName: " + WINE_NAME);
 
 		
-		//	Scraping URL
-		//json = Jsoup.connect("http://winescapes.net/web/uploadImage.php?command=LATEST_WINE&wineName=&country=" + country + "&region=" + region + "&wineType=" + type + "&varietal=" + varietal + "&vintage=&advanceSearch=true&userID=280&search=true&lat=40.4862157&lng=-74.45181880000001").ignoreContentType(true).execute().body();
+		if(("".compareTo(country) == 0) && ("".compareTo(region) == 0) && ("".compareTo(type) == 0) && ("".compareTo(varietal) == 0) && ("".compareTo(vintage) == 0)) {
 		
-		if(("".compareTo(country) == 0) && ("".compareTo(region) == 0) && ("".compareTo(type) == 0) && ("".compareTo(varietal) == 0) && ("".compareTo(vintage) == 0))
 			json = Jsoup.connect("http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME).ignoreContentType(true).execute().body();
+		}
 		else {
-			//	Base URL
-			String url = "http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_ADVANCED_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME;
-			
 			//	Build URL based on parameters
-			if("".compareTo(country) != 0) {
-				url += "&ws_country=" + country;
+			if("".equals(WINE_NAME.trim())) {
+				WINE_NAME = "%20";
 			}
-			if("".compareTo(region) != 0) {
-				url += "&ws_region=" + region;
-			}
-			if("".compareTo(varietal) != 0) {
-				url += "&ws_varietal=" + varietal;
-			}
-			if("".compareTo(type) != 0) {
-				url += "&ws_winetype=" + type;
-			}
-			if("".compareTo(vintage) != 0) {
-				url += "&ws_vintage=" + vintage;
-			}
+			
+			//	Base URL
+			String url = "http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_ADVANCED_SEARCH" +
+						 "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME + "&ws_country=" + country + 
+						 "&ws_region=" + region + "&ws_varietal=" + varietal + "&ws_winetype=" + type + 
+						 "&ws_vintage=" + vintage;
+			
+			//System.out.println("URL: " + url);
 			json = Jsoup.connect(url).ignoreContentType(true).execute().body();
 		}
 		
