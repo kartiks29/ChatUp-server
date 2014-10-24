@@ -10,7 +10,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -25,13 +24,16 @@ import org.joda.time.format.DateTimeFormatter;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.Select;
 
-import com.csvreader.CsvReader;
 import com.google.code.geocoder.Geocoder;
 import com.google.code.geocoder.GeocoderRequestBuilder;
 import com.google.code.geocoder.model.GeocodeResponse;
@@ -48,7 +50,7 @@ import com.thoughtworks.selenium.webdriven.commands.GetAlert;
  * Servlet implementation class OpenTable
  * The servlet returns top 5 restaurants nearby along with timings where table is available
  */
-@WebServlet("/restaurant")
+@WebServlet("/OpenTable")
 public class OpenTable extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
@@ -75,40 +77,71 @@ public class OpenTable extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		response.setContentType("application/json");
 		PrintWriter writer = response.getWriter();
-		String query = request.getParameter("query");
+
 		String lat = request.getParameter("lat");
 		String lon = request.getParameter("lon");
-		String time = request.getParameter("time");
+		String time = request.getParameter("time").replace("%20", " ");
+		
+		System.out.println(lat);
+		System.out.println(lon);
+		System.out.println(time);
+		
+		
+		//	Get the JSON request in String format
+		StringBuilder sb = new StringBuilder();
+		BufferedReader br = request.getReader();
+		String str;
+		while( (str = br.readLine()) != null ){
+		    sb.append(str);
+		}
+		
+		//	Get the actual command in String
+		String query = "";
+		try {
+			JSONObject jsonReq = new JSONObject(sb.toString());
+			query = (String) jsonReq.get("request");
+			query = query.trim().toLowerCase();
+			
+		} catch (JSONException e1) {
+			e1.printStackTrace();
+		}
+		
+		System.out.println(query);
+		
 		ArrayList<JSONObject> results = null;
-		if(query.matches("eat")){
+		String resultString;
+		if(query.toLowerCase().matches("eat")){
+			count = 0;
 			getZipAndCity(lat, lon);
-			results=getRestaurants(time);
+			resultString=getRestaurants(time);
 			JSONObject obj= new JSONObject();
 			try {
-				obj.put("query", query);
-				JSONArray result = new JSONArray(results);
-				obj.put("results", result);
+				//obj.put("query", query);
+				//JSONArray result = new JSONArray(results);
+				//obj.put("response", result);
+				obj.put("response", resultString);
 			} catch (JSONException e) {
 				writer.print("No results found for this query");
 			}
+			System.out.println(obj);
 			writer.print(obj);
 		}
 	}
+
+
 	
-	public static void main(String[] args) {
-		OpenTable ot=new OpenTable();
-		ot.getZipAndCity("40.4943747", "-74.4400266");
-	}
+	
 	/**
 	 * Method to get search results using OpenTable API
 	 * @param time 
 	 * @return ArrayList<SearchResponse>
 	 */
-	public ArrayList<JSONObject> getRestaurants(String time){
+	public String getRestaurants(String time){
 
-		ArrayList<JSONObject> respList=new ArrayList<JSONObject>();	
+		ArrayList<JSONObject> respList=new ArrayList<JSONObject>();
+		StringBuilder resultString = new StringBuilder();
+		
 		try {
-
 			//call the API. The API key has to be generated. 
 			URL url = new URL("https://opentable.herokuapp.com/api/restaurants?city="+ URLEncoder.encode(city));
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -125,32 +158,40 @@ public class OpenTable extends HttpServlet {
 
 			// parse json
 			JSONArray jsonMainNode = resp.optJSONArray("restaurants");
-
+			
 			for(int i=0; i < jsonMainNode.length(); i++)
 			{
 				if(count<5){
 					JSONObject jsonChildNode = jsonMainNode.getJSONObject(i);
 					JSONObject data=new JSONObject();
 					JSONArray times;
+					
 					data.put("name", jsonChildNode.optString("name"));
-						times= getTimings(jsonChildNode.optString("reserve_url"),time);
+					times= getTimings(jsonChildNode.optString("reserve_url"),time);
  
 					if(times!=null && times.length()>0){
 
+						resultString.append("Name: " + jsonChildNode.optString("name") + "\n");
+						resultString.append("Available times: " + times);
+						
+						
+						
 						data.put("timeAvailable", times);
 						respList.add(data);
+						
+						resultString.append("\n\n");
+						
 						count++;
-					}				
+					}
 				}
-
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		return respList;		
 
+		return resultString.toString();
 	}
 
 	private JSONArray getTimings(String reserveUrl, String currTime){
@@ -158,13 +199,13 @@ public class OpenTable extends HttpServlet {
 		System.out.println(reserveUrl);
 		JSONArray times=new JSONArray();
   
-    	DateTimeFormatter fmt = DateTimeFormat.forPattern("h:mm aa");   	
+		DateTimeFormatter fmt = DateTimeFormat.forPattern("h:mm aa");
     	DateTime curr=fmt.parseDateTime(currTime);
     	
 		WebDriver driver = new FirefoxDriver();		
 		try{
 			driver.navigate().to(reserveUrl);
-
+			
 			Select select = new Select(driver.findElement(By.id("SearchNav_OTDateSearch_cboHourList")));
 			
 			List<WebElement> options=select.getOptions();
@@ -186,7 +227,7 @@ public class OpenTable extends HttpServlet {
 				for (String time : strArray) {
 					if(!time.isEmpty() && !time.equals("")){
 						String[] strArr=time.trim().split(" ");
-						if(!strArr[0].trim().equals(""))
+						if(!strArr[0].trim().equals("") && !strArr[0].trim().matches("^[a-zA-Z]+$"))
 						times.put(strArr[0].trim()); 
 					}
 				}					
@@ -201,30 +242,6 @@ public class OpenTable extends HttpServlet {
 
 	private void getZipAndCity(String latitude, String longitude) {
 		
-		// Read from zipcodes database and find zip using latitude and longitude
-	//		try {
-	//
-	//			CsvReader zips = new CsvReader("E:\\graduate\\badri\\zip_codes_states.csv");		
-	//			zips.readHeaders();
-	//			while (zips.readRecord())
-	//			{
-	//				String zipcode = zips.get("zip");
-	//				String lat = zips.get("latitude");
-	//				String lon = zips.get("longitude"); 
-	//				String cityname = zips.get("city");				
-	//				if(lat.contains(latitude) && lon.contains(longitude)){
-	//					zip=zipcode;
-	//					city=cityname;
-	//					break;
-	//				}
-	//			}
-	//			zips.close();			
-	//		} catch (FileNotFoundException e) {
-	//			e.printStackTrace();
-	//		} catch (IOException e) {
-	//			e.printStackTrace();
-	//		}
-
 		try{
 			Geocoder geocoder= new Geocoder();
 			LatLng location=new LatLng(latitude, longitude);
