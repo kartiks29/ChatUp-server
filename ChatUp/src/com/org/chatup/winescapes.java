@@ -64,7 +64,7 @@ public class winescapes extends HttpServlet {
 			JSONObject jsonReq = new JSONObject(sb.toString());
 			param = (String) jsonReq.get("request");
 			param = param.trim().toLowerCase();
-			
+			System.out.println("Query: " + param);
 		} catch (JSONException e1) {
 			e1.printStackTrace();
 		}		
@@ -156,7 +156,7 @@ public class winescapes extends HttpServlet {
 			WINE_NAME = WINE_NAME.replaceAll("[0-9]", "").trim();
 			//System.out.println("Vintage: " + vintage);
 		}
-		//System.out.println("WineName: " + WINE_NAME);
+		System.out.println("WineName: " + WINE_NAME);
 
 		
 		if(("".compareTo(country) == 0) && ("".compareTo(region) == 0) && ("".compareTo(type) == 0) && ("".compareTo(varietal) == 0) && ("".compareTo(vintage) == 0)) {
@@ -164,6 +164,9 @@ public class winescapes extends HttpServlet {
 			json = Jsoup.connect("http://winescapes.net/api/?api_key=" + API_KEY + "&cmd=" + "WS_SEARCH" + "&email_id=" + EMAIL + "&ws_winename=" + WINE_NAME).ignoreContentType(true).execute().body();
 		}
 		else {
+			
+			System.out.println("Inside!");
+			
 			//	Build URL based on parameters
 			if("".equals(WINE_NAME.trim())) {
 				WINE_NAME = "%20";
@@ -179,6 +182,8 @@ public class winescapes extends HttpServlet {
 			json = Jsoup.connect(url).ignoreContentType(true).execute().body();
 		}
 		
+		int count = 0;
+		
 		JSONArray jsonArr = new JSONArray();
 		String failure_msg = "";
 
@@ -192,11 +197,23 @@ public class winescapes extends HttpServlet {
 			//	SUCCESS. Now check for 
 			else {
 				JSONArray jArray = jObject.getJSONArray("wine_list");
+				
 				for(int i = 0; i < jArray.length(); i++) {
+					
 					JSONObject jsonObj = new JSONObject();
 					JSONObject jObj = jArray.getJSONObject(i);
-					jsonObj.put("wine_name", jObj.getString("wine_name"));
+					jsonObj.put("wine_name", jObj.get("wine_name"));
+					jsonObj.put("verietal", jObj.get("verietal"));
+					jsonObj.put("vintage", jObj.get("vintage"));
+					jsonObj.put("upCount", jObj.get("upCount"));
+					jsonObj.put("downCount", jObj.get("downCount"));
+					jsonObj.put("is_available", jObj.get("is_available"));
 					jsonArr.put(jsonObj);
+
+					count++;
+					// Display only 3 results
+					if(count == 3)
+						break;
 				}
 			}
 		} catch (JSONException e) {
@@ -219,16 +236,24 @@ public class winescapes extends HttpServlet {
 				String result = "";
 	            
 				try {
-	            	for (int i = 0; i < jsonArr.length(); i++) {
+	            	for (int i = 0; i < count; i++) {
 
 	                    JSONObject jObj = jsonArr.getJSONObject(i);
-	                    result += (i + 1) + ". " + jObj.getString("wine_name") + "\\n";
+	                    result += (i + 1) +
+	                    		". " + jObj.get("wine_name") + "\\n" +
+	                    		"Varietal: " + jObj.get("verietal") + "\\n" +
+	                    		"Vintage: " + jObj.get("vintage") + "\\n" +
+	                    		"Up Count: " + jObj.get("upCount") + "\\n" +
+	                    		"Down Count: " + jObj.get("downCount") + "\\n" +
+	                    		"Availability: " + jObj.get("is_available") + "\\n\\n"
+	                    		;
 	                }
 	            } catch (JSONException e) {
 	                e.printStackTrace();
 	            }
 				
 	            result = "{\"response\":\"" + result + "\"}";
+	            System.out.println("Result: " + result);
 				writer.print(result);
 			}
 		}
