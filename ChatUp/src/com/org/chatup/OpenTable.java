@@ -11,6 +11,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -32,6 +33,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.htmlunit.HtmlUnitDriver;
+import org.openqa.selenium.phantomjs.PhantomJSDriver;
+import org.openqa.selenium.phantomjs.PhantomJSDriverService;
+import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.Select;
 
 import com.google.code.geocoder.Geocoder;
@@ -78,15 +83,18 @@ public class OpenTable extends HttpServlet {
 		response.setContentType("application/json");
 		PrintWriter writer = response.getWriter();
 
-		String lat = request.getParameter("lat");
-		String lon = request.getParameter("lon");
-		String time = request.getParameter("time").replace("%20", " ");
+		//String lat = request.getParameter("lat");
+		String lat = "40.4862200";
+		String lon = "-74.4518200"; 
+		//String lon = request.getParameter("lon");
+		//String time = request.getParameter("time").replace("%20", " ");
+		String time = "11:00 am";
 		
-		System.out.println(lat);
-		System.out.println(lon);
-		System.out.println(time);
+		//System.out.println(lat);
+		//System.out.println(lon);
+		//System.out.println(time);
 		
-		
+/*		
 		//	Get the JSON request in String format
 		StringBuilder sb = new StringBuilder();
 		BufferedReader br = request.getReader();
@@ -105,8 +113,9 @@ public class OpenTable extends HttpServlet {
 		} catch (JSONException e1) {
 			e1.printStackTrace();
 		}
-		
-		System.out.println(query);
+*/
+		String query = "eat";
+		//System.out.println(query);
 		
 		ArrayList<JSONObject> results = null;
 		String resultString;
@@ -196,13 +205,22 @@ public class OpenTable extends HttpServlet {
 
 	private JSONArray getTimings(String reserveUrl, String currTime){
 
-		System.out.println(reserveUrl);
+		//System.out.println(reserveUrl);
 		JSONArray times=new JSONArray();
   
 		DateTimeFormatter fmt = DateTimeFormat.forPattern("h:mm aa");
     	DateTime curr=fmt.parseDateTime(currTime);
     	
-		WebDriver driver = new FirefoxDriver();		
+		
+    	
+    	
+    	//WebDriver driver = new FirefoxDriver();
+    	WebDriver driver = new FirefoxDriver();
+    	//java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF);
+    	
+    	
+    	
+    	
 		try{
 			driver.navigate().to(reserveUrl);
 			
@@ -265,7 +283,7 @@ public class OpenTable extends HttpServlet {
 	              }
 	            }
 	          }
-		    System.out.println("city..."+city);
+		    //System.out.println("city..."+city);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -273,4 +291,3 @@ public class OpenTable extends HttpServlet {
 
 	}
 }
-

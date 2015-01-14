@@ -54,7 +54,7 @@ public class winescapes extends HttpServlet {
 		StringBuilder sb = new StringBuilder();
 		BufferedReader br = request.getReader();
 		String str;
-		while( (str = br.readLine()) != null ){
+		while( (str = br.readLine()) != null ) {
 		    sb.append(str);
 		}
 		
@@ -62,12 +62,14 @@ public class winescapes extends HttpServlet {
 		String param ="", json = "";
 		try {
 			JSONObject jsonReq = new JSONObject(sb.toString());
-			param = (String) jsonReq.get("request");
+			param = (String) jsonReq.get("message");
 			param = param.trim().toLowerCase();
 			System.out.println("Query: " + param);
 		} catch (JSONException e1) {
 			e1.printStackTrace();
-		}		
+		}
+		
+		System.out.println(param);
 		
 		ArrayList<String> cat = new ArrayList<>();
 		for(String t : param.split(" "))
@@ -240,21 +242,30 @@ public class winescapes extends HttpServlet {
 
 	                    JSONObject jObj = jsonArr.getJSONObject(i);
 	                    result += (i + 1) +
-	                    		". " + jObj.get("wine_name") + "\\n" +
-	                    		"Varietal: " + jObj.get("verietal") + "\\n" +
-	                    		"Vintage: " + jObj.get("vintage") + "\\n" +
-	                    		"Up Count: " + jObj.get("upCount") + "\\n" +
-	                    		"Down Count: " + jObj.get("downCount") + "\\n" +
-	                    		"Availability: " + jObj.get("is_available") + "\\n\\n"
+	                    		". " + jObj.get("wine_name") + "\n" +
+	                    		"Varietal: " + jObj.get("verietal") + "\n" +
+	                    		"Vintage: " + jObj.get("vintage") + "\n" +
+	                    		"Up Count: " + jObj.get("upCount") + "\n" +
+	                    		"Down Count: " + jObj.get("downCount") + "\n" +
+	                    		"Availability: " + jObj.get("is_available")
 	                    		;
+	                    
+	                    if(i < count - 1)
+	                    	result += "\n";
 	                }
 	            } catch (JSONException e) {
 	                e.printStackTrace();
 	            }
 				
-	            result = "{\"response\":\"" + result + "\"}";
-	            System.out.println("Result: " + result);
-				writer.print(result);
+	            //result = "{\"response\":\"" + result + "\"}";
+	            //System.out.println("Result: " + result);
+				try {
+					writer.print(new JSONObject().put("response", result));
+					System.out.println("Result: " + (new JSONObject().put("response", result)).getString("response"));
+				} catch (JSONException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 
