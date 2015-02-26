@@ -1,6 +1,7 @@
 package com.org.chatup;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +12,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.servlet.ServletException;
@@ -32,6 +34,7 @@ import org.jsoup.select.Elements;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.firefox.FirefoxBinary;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 import org.openqa.selenium.phantomjs.PhantomJSDriver;
@@ -73,7 +76,7 @@ public class OpenTable extends HttpServlet {
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		doPost(request,response);
+		doPost(request, response);
 	}
 
 	/**
@@ -94,29 +97,11 @@ public class OpenTable extends HttpServlet {
 		//System.out.println(lon);
 		//System.out.println(time);
 		
-/*		
-		//	Get the JSON request in String format
-		StringBuilder sb = new StringBuilder();
-		BufferedReader br = request.getReader();
-		String str;
-		while( (str = br.readLine()) != null ){
-		    sb.append(str);
-		}
-		
-		//	Get the actual command in String
-		String query = "";
-		try {
-			JSONObject jsonReq = new JSONObject(sb.toString());
-			query = (String) jsonReq.get("request");
-			query = query.trim().toLowerCase();
-			
-		} catch (JSONException e1) {
-			e1.printStackTrace();
-		}
-*/
+
 		String query = "eat";
 		//System.out.println(query);
-		
+
+/*		
 		ArrayList<JSONObject> results = null;
 		String resultString;
 		if(query.toLowerCase().matches("eat")){
@@ -133,8 +118,29 @@ public class OpenTable extends HttpServlet {
 				writer.print("No results found for this query");
 			}
 			System.out.println(obj);
-			writer.print(obj);
+			writer.print(obj);			
 		}
+*/
+		// Setup firefox binary to start in Xvfb        
+        String Xport = System.getProperty(
+                "lmportal.xvfb.id", ":1");
+        final File firefoxPath = new File(System.getProperty(
+                "lmportal.deploy.firefox.path", "/usr/bin/firefox"));
+        FirefoxBinary firefoxBinary = new FirefoxBinary(firefoxPath);
+        firefoxBinary.setEnvironmentProperty("DISPLAY", Xport);
+ 
+        // Start Firefox driver
+        WebDriver driver = new FirefoxDriver(firefoxBinary, null);
+        driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+        driver.get("http://google.com/");
+ 
+/*        
+        // Take snapshot of browser
+        File srcFile = ((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
+        FileUtils.copyFile(srcFile, new File("ffsnapshot.png"));
+*/
+        
+        driver.quit();
 	}
 
 

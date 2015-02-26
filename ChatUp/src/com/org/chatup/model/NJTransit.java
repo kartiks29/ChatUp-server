@@ -3,7 +3,9 @@ package com.org.chatup.model;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.DriverManager;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -14,8 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import javax.sql.DataSource;
 
 import org.joda.time.DateTime;
 
@@ -31,97 +33,96 @@ import com.gargoylesoftware.htmlunit.html.HtmlTable;
 import com.gargoylesoftware.htmlunit.html.HtmlTableCell;
 import com.gargoylesoftware.htmlunit.html.HtmlTableRow;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
-import com.mysql.jdbc.Connection;
-import com.mysql.jdbc.PreparedStatement;
-import com.mysql.jdbc.ResultSet;
 
 public class NJTransit {
 	
-	private final String DATABASE_NAME = "chatup";
-	private final String USER_NAME = "chatup_admin";
-	private final String PASSWORD = "chatup_admin";
 	private final String TABLE_NAME = "njtransit";
 	private final String query;
 	
 	private Map<String, String> stationList = new HashMap<String, String>();
+	
+	private DataSource dataSource = null;
 	private Connection connection = null;
+	private PreparedStatement preparedStatement = null;
 	
-	public NJTransit(String query) {
+	public NJTransit(DataSource dataSource, String query) {
 		this.query = query;
+		this.dataSource = dataSource;
 	}
 	
 	
-	public void openDbConnection(String databaseName, String username, String password) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-		Class.forName("com.mysql.jdbc.Driver").newInstance();
-		connection = (Connection) DriverManager
-		          .getConnection("jdbc:mysql://localhost/" + databaseName + "?"
-		              + "user=" + username 
-		              + "&password=" + password
-		              );
-	}
-	
-	public void closeDbConnection(Connection connect) throws SQLException {
-		connect.close();
-	}
-	
-	
-	public void insertStationList(final int batchSize) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-		openDbConnection(DATABASE_NAME, USER_NAME, PASSWORD);
+	public void insertStationList(final int batchSize) throws SQLException {
+		truncateTable(TABLE_NAME);
+		
 		String INSERT_QUERY = "INSERT INTO " + TABLE_NAME +" (st_code, st_name, last_updated) VALUES (?, ?, ?)";
 		
-		PreparedStatement preparedStatement = (PreparedStatement) connection.prepareStatement(INSERT_QUERY);
-		int count = 0;
-		
-		for(Map.Entry<String, String> entry : stationList.entrySet()) {
-			preparedStatement.setString(1, entry.getKey());
-			preparedStatement.setString(2, entry.getValue());
+		try {
+			connection = dataSource.getConnection();
+			preparedStatement = (PreparedStatement) connection.prepareStatement(INSERT_QUERY);
+			int count = 0;
 			
-			Date dt = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			String currentTime = sdf.format(dt);
-			
-			preparedStatement.setString(3, currentTime);
-			preparedStatement.addBatch();
-			
-			if(++count % batchSize == 0) {
-				preparedStatement.executeBatch();
-		    }
+			for(Map.Entry<String, String> entry : stationList.entrySet()) {
+				preparedStatement.setString(1, entry.getKey());
+				preparedStatement.setString(2, entry.getValue());
+				
+				Date dt = new Date();
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String currentTime = sdf.format(dt);
+				
+				preparedStatement.setString(3, currentTime);
+				preparedStatement.addBatch();
+				
+				if(++count % batchSize == 0) {
+					preparedStatement.executeBatch();
+			    }
+			}
+			preparedStatement.executeBatch(); // Insert remaining records
+		} finally {
+			try { if(connection != null) { connection.close(); } } catch (SQLException e) { throw e;}
+			try { if(preparedStatement != null) { preparedStatement.close(); } } catch (SQLException e) { throw e;}
 		}
-		preparedStatement.executeBatch(); // Insert remaining records
-		preparedStatement.close();
-		closeDbConnection(connection);
 	}
 	
 	
 	public Map<String, String> getStationCodes(String station) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-		openDbConnection(DATABASE_NAME, USER_NAME, PASSWORD);
+		
 		final String SELECT_QUERY = "SELECT st_code, st_name FROM " + TABLE_NAME + " WHERE st_name LIKE '%" + station + "%';";
 		Map<String, String> stationCodes = new HashMap<String, String>();
+		ResultSet resultSet = null;
 		
-		PreparedStatement preparedStatement = (PreparedStatement) connection.prepareStatement(SELECT_QUERY);
-		ResultSet resultSet = (ResultSet) preparedStatement.executeQuery();
-		
-		while(resultSet.next()) {
-			stationCodes.put(resultSet.getString(1), resultSet.getString(2));
+		try {
+			connection = dataSource.getConnection();
+			preparedStatement = (PreparedStatement) connection.prepareStatement(SELECT_QUERY);
+			resultSet = (ResultSet) preparedStatement.executeQuery();
 			
+			while(resultSet.next()) {
+				stationCodes.put(resultSet.getString(1), resultSet.getString(2));	
+			}
+		} finally {
+			try { if(connection != null) { connection.close(); } } catch (SQLException e) { throw e;}
+			try { if(preparedStatement != null) { preparedStatement.close(); } } catch (SQLException e) { throw e;}
+			try { if(resultSet != null) { resultSet.close(); } } catch (SQLException e) { throw e;}
 		}
-		preparedStatement.close();
-		closeDbConnection(connection);
 		
 		return stationCodes;
 	}
 	
 	
-	public void truncateTable(String tableName) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-		openDbConnection(DATABASE_NAME, USER_NAME, PASSWORD);
-		
+	public void truncateTable(String tableName) throws SQLException {
 		String TRUNCATE_QUERY = "TRUNCATE TABLE " + tableName;
 		
-		PreparedStatement preparedStatement = (PreparedStatement) connection.prepareStatement(TRUNCATE_QUERY);
-		preparedStatement.execute();
-		preparedStatement.close();
-		
-		closeDbConnection(connection);
+		try {
+			connection = dataSource.getConnection();
+			preparedStatement = (PreparedStatement) connection.prepareStatement(TRUNCATE_QUERY);
+			preparedStatement.execute();
+		} finally {
+			if(connection != null) {
+				connection.close();
+			}
+			if(preparedStatement != null) {
+				preparedStatement.close();
+			}
+		}
 	}
 	
 	
@@ -170,11 +171,8 @@ public class NJTransit {
 		
 		for(HtmlTableRow row : table.getRows().subList(1, table.getRowCount())) {
 				String timing = row.getCell(0).asText()
-						//.replaceAll("Northeast Corridor", "")
 						.replaceAll("\n", " ")
 						;
-				
-				
 				String time = timing.substring(0, 8);
 				int hr = Integer.parseInt(time.substring(0, 2));
 				int min = Integer.parseInt(time.substring(3, 5));
@@ -183,17 +181,9 @@ public class NJTransit {
 				}
 				
 				DateTime currentTime = new DateTime();
-				
-				if((currentTime.getHourOfDay() < hr) || (currentTime.getHourOfDay() == hr && currentTime.getMinuteOfHour() <= min) ) {
-/*					
-					Pattern pattern = Pattern.compile("(.+:.+)");
-					Matcher matcher = pattern.matcher(timing);
-					if(matcher.find()) {
-						
-						temp += matcher.group().toString() + "\t"
-								+ timing.replaceAll(matcher.group().toString(), "") + "\t"
-								;
-*/
+				if((currentTime.getHourOfDay() < hr) || 
+						(currentTime.getHourOfDay() == hr && currentTime.getMinuteOfHour() <= min) ) {
+					
 					temp += timing + "\n";
 					
 						for(HtmlTableCell cell : row.getCells().subList(1, row.getCells().size())) {
@@ -204,7 +194,7 @@ public class NJTransit {
 
 				temp += "\n";
 				
-				if(count > 5)
+				if(count > 2)
 					break;
 		}
 		
@@ -221,7 +211,7 @@ public class NJTransit {
 			return result;
 		
 		try {
-			String[] queryAsWords = query.split("to");
+			String[] queryAsWords = query.split("\\bto\\b");
 			if(queryAsWords.length == 2) {
 				
 				fromStationCodes = getStationCodes(queryAsWords[0].trim());
@@ -252,6 +242,10 @@ public class NJTransit {
 				
 				for(String from : fromStationCodes.keySet()) {
 					for(String to : toStationCodes.keySet()) {
+						
+						if(result.trim().length() > 0) {
+							result += "\n";
+						}
 						
 						result += fromStationCodes.get(from).toUpperCase() + " -> "
 								+ toStationCodes.get(to).toUpperCase() + "\n" 
