@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context path="/ChatUp" docBase="ChatUp.war" crossContext="true" reloadable="true" debug="1">
+
+  <Resource name="jdbc/mysqldb" auth="Container"
+            type="javax.sql.DataSource"
+            driverClassName="com.mysql.jdbc.Driver"
+            url="jdbc:mysql://localhost/chatup"
+            username="chatup_admin"
+            password="chatup_admin"
+            maxActive="100"
+            maxIdle="30"
+            maxWait="-1"
+            removeAbandoned="true"
+            removeAbandonedTimeout="60"
+            logAbandoned="true"
+            />
+
+</Context>
