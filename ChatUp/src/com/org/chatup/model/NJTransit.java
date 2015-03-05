@@ -3,9 +3,7 @@ package com.org.chatup.model;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -16,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.sql.DataSource;
 
 import org.joda.time.DateTime;
 
@@ -33,6 +29,10 @@ import com.gargoylesoftware.htmlunit.html.HtmlTable;
 import com.gargoylesoftware.htmlunit.html.HtmlTableCell;
 import com.gargoylesoftware.htmlunit.html.HtmlTableRow;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
+import com.mysql.jdbc.Connection;
+import com.mysql.jdbc.PreparedStatement;
+import com.mysql.jdbc.ResultSet;
+import com.org.chatup.web.RequestHandler;
 
 public class NJTransit {
 	
@@ -40,89 +40,85 @@ public class NJTransit {
 	private final String query;
 	
 	private Map<String, String> stationList = new HashMap<String, String>();
-	
-	private DataSource dataSource = null;
 	private Connection connection = null;
-	private PreparedStatement preparedStatement = null;
 	
-	public NJTransit(DataSource dataSource, String query) {
+	public NJTransit(String query) {
 		this.query = query;
-		this.dataSource = dataSource;
 	}
 	
 	
-	public void insertStationList(final int batchSize) throws SQLException {
+	public void openDbConnection(String databaseName, String username, String password) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+		Class.forName("com.mysql.jdbc.Driver").newInstance();
+		connection = (Connection) DriverManager
+		          .getConnection("jdbc:mysql://localhost/" + databaseName + "?"
+		              + "user=" + username 
+		              + "&password=" + password
+		              );
+	}
+	
+	public void closeDbConnection(Connection connect) throws SQLException {
+		connect.close();
+	}
+	
+	
+	public void insertStationList(final int batchSize) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
 		truncateTable(TABLE_NAME);
-		
+		openDbConnection(RequestHandler.DATABASE_NAME, RequestHandler.USER_NAME, RequestHandler.PASSWORD);
 		String INSERT_QUERY = "INSERT INTO " + TABLE_NAME +" (st_code, st_name, last_updated) VALUES (?, ?, ?)";
 		
-		try {
-			connection = dataSource.getConnection();
-			preparedStatement = (PreparedStatement) connection.prepareStatement(INSERT_QUERY);
-			int count = 0;
+		PreparedStatement preparedStatement = (PreparedStatement) connection.prepareStatement(INSERT_QUERY);
+		int count = 0;
+		
+		for(Map.Entry<String, String> entry : stationList.entrySet()) {
+			preparedStatement.setString(1, entry.getKey());
+			preparedStatement.setString(2, entry.getValue());
 			
-			for(Map.Entry<String, String> entry : stationList.entrySet()) {
-				preparedStatement.setString(1, entry.getKey());
-				preparedStatement.setString(2, entry.getValue());
-				
-				Date dt = new Date();
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				String currentTime = sdf.format(dt);
-				
-				preparedStatement.setString(3, currentTime);
-				preparedStatement.addBatch();
-				
-				if(++count % batchSize == 0) {
-					preparedStatement.executeBatch();
-			    }
-			}
-			preparedStatement.executeBatch(); // Insert remaining records
-		} finally {
-			try { if(connection != null) { connection.close(); } } catch (SQLException e) { throw e;}
-			try { if(preparedStatement != null) { preparedStatement.close(); } } catch (SQLException e) { throw e;}
+			Date dt = new Date();
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String currentTime = sdf.format(dt);
+			
+			preparedStatement.setString(3, currentTime);
+			preparedStatement.addBatch();
+			
+			if(++count % batchSize == 0) {
+				preparedStatement.executeBatch();
+		    }
 		}
+		preparedStatement.executeBatch(); // Insert remaining records
+		preparedStatement.close();
+		closeDbConnection(connection);
 	}
 	
 	
 	public Map<String, String> getStationCodes(String station) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-		
+		openDbConnection(RequestHandler.DATABASE_NAME, RequestHandler.USER_NAME, RequestHandler.PASSWORD);
 		final String SELECT_QUERY = "SELECT st_code, st_name FROM " + TABLE_NAME + " WHERE st_name LIKE '%" + station + "%';";
 		Map<String, String> stationCodes = new HashMap<String, String>();
-		ResultSet resultSet = null;
 		
-		try {
-			connection = dataSource.getConnection();
-			preparedStatement = (PreparedStatement) connection.prepareStatement(SELECT_QUERY);
-			resultSet = (ResultSet) preparedStatement.executeQuery();
+		PreparedStatement preparedStatement = (PreparedStatement) connection.prepareStatement(SELECT_QUERY);
+		ResultSet resultSet = (ResultSet) preparedStatement.executeQuery();
+		
+		while(resultSet.next()) {
+			stationCodes.put(resultSet.getString(1), resultSet.getString(2));
 			
-			while(resultSet.next()) {
-				stationCodes.put(resultSet.getString(1), resultSet.getString(2));	
-			}
-		} finally {
-			try { if(connection != null) { connection.close(); } } catch (SQLException e) { throw e;}
-			try { if(preparedStatement != null) { preparedStatement.close(); } } catch (SQLException e) { throw e;}
-			try { if(resultSet != null) { resultSet.close(); } } catch (SQLException e) { throw e;}
 		}
+		preparedStatement.close();
+		closeDbConnection(connection);
 		
 		return stationCodes;
 	}
 	
 	
-	public void truncateTable(String tableName) throws SQLException {
+	public void truncateTable(String tableName) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+		openDbConnection(RequestHandler.DATABASE_NAME, RequestHandler.USER_NAME, RequestHandler.PASSWORD);
+		
 		String TRUNCATE_QUERY = "TRUNCATE TABLE " + tableName;
 		
-		try {
-			connection = dataSource.getConnection();
-			preparedStatement = (PreparedStatement) connection.prepareStatement(TRUNCATE_QUERY);
-			preparedStatement.execute();
-		} finally {
-			if(connection != null) {
-				connection.close();
-			}
-			if(preparedStatement != null) {
-				preparedStatement.close();
-			}
-		}
+		PreparedStatement preparedStatement = (PreparedStatement) connection.prepareStatement(TRUNCATE_QUERY);
+		preparedStatement.execute();
+		preparedStatement.close();
+		
+		closeDbConnection(connection);
 	}
 	
 	

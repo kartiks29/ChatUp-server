@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-import javax.sql.DataSource;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -14,8 +12,6 @@ import org.jsoup.Jsoup;
 public class Winescapes {
 	
 	private final String query;
-	private DataSource dataSource;
-	
 	String API_KEY = "chatup780480", EMAIL = "vlnvv14@gmail.com", WINE_NAME = "", region = "", 
 			varietal = "", country = "", type = "", vintage = "", json = "";
 	
@@ -29,14 +25,13 @@ public class Winescapes {
 			"&ws_winename="
 			;
 	
-	public Winescapes(DataSource dataSource, String query) {
+	public Winescapes(String query) {
 		this.query = query;
 		//	Get list of all regions, countries, etc. from winescape.net
 		this.regionList = region();
 		this.countryList = country();
 		this.varietalList = varietal();
 		this.typeList = type();
-		this.dataSource = dataSource;
 	}
 	
 	
