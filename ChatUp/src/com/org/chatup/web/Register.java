@@ -3,6 +3,7 @@ package com.org.chatup.web;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -18,8 +19,6 @@ import javax.sql.DataSource;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.org.chatup.Config;
-
 /**
  * Servlet implementation class Register
  */
@@ -30,12 +29,14 @@ public class Register extends HttpServlet {
 	private final String USERS_TABLE = "USERS";
 	private DataSource dataSource = null;
 	
+	public static final String DATABASE_NAME = "chatup";
+//	private final String USER_NAME = "chatup_admin";
+	public static final String USER_NAME = "root";
+//	private final String PASSWORD = "chatup_admin";
+	public static final String PASSWORD = "chatup";
+	private final String TABLE_NAME = "USERS";
+	private Connection connection = null;
 	
-	@Override
-	public void init() throws ServletException {
-		super.init();
-		dataSource = Config.getInstance(getServletContext()).getDataSource();
-	}
 	
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
@@ -65,6 +66,15 @@ public class Register extends HttpServlet {
 					saveToDb(name, email, regId);
 				} catch (SQLException e) {
 					e.printStackTrace();
+				} catch (InstantiationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			} catch (JSONException e) {
 				result = "regId not saved. Register again";
@@ -85,14 +95,12 @@ public class Register extends HttpServlet {
 	}
 	
 	
-	public void saveToDb(String name, String email, String regId) throws SQLException {
-		Connection connection = null;
+	public void saveToDb(String name, String email, String regId) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+		openDbConnection(DATABASE_NAME, USER_NAME, PASSWORD);
 		PreparedStatement preparedStatement = null;
 		final String INSERT_QUERY = "INSERT INTO " + USERS_TABLE +" (name, email, is_active, last_active, gcm_regId) VALUES (?, ?, ?, ?, ?)";
 		
 		try {
-			connection = dataSource.getConnection();
-			
 			preparedStatement = (PreparedStatement) connection.prepareStatement(INSERT_QUERY);
 			
 			preparedStatement.setString(1, "name");
@@ -117,5 +125,18 @@ public class Register extends HttpServlet {
 			try { if(connection != null) { connection.close(); } } catch (SQLException e) { throw e;}
 			try { if(preparedStatement != null) { preparedStatement.close(); } } catch (SQLException e) { throw e;}
 		}
+	}
+	
+	public void openDbConnection(String databaseName, String username, String password) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+		Class.forName("com.mysql.jdbc.Driver").newInstance();
+		connection = (Connection) DriverManager
+		          .getConnection("jdbc:mysql://localhost/" + databaseName + "?"
+		              + "user=" + username 
+		              + "&password=" + password
+		              );
+	}
+	
+	public void closeDbConnection(Connection connect) throws SQLException {
+		connect.close();
 	}
 }

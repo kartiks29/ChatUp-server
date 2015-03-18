@@ -1,6 +1,7 @@
 package com.org.chatup.web;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -21,6 +22,8 @@ import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
 import com.mysql.jdbc.ResultSet;
 import com.org.chatup.model.NJTransit;
+import com.org.chatup.model.Open311;
+import com.org.chatup.model.OpenTable;
 import com.org.chatup.model.Winescapes;
 
 /**
@@ -57,7 +60,8 @@ public class RequestHandler extends HttpServlet {
     }
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		doPost(request, response);
+		PrintWriter output = response.getWriter();
+		output.write("Hello there!");
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -120,6 +124,16 @@ public class RequestHandler extends HttpServlet {
 						e.printStackTrace();
 					}
 					break;
+					
+				case "Opentable":
+					OpenTable opentable = new OpenTable(message);
+					result = opentable.test();
+					break;
+				
+				case "Open311":
+					Open311 open311 = new Open311(message);
+					result = open311.sendRequest();
+					break;
 
 				default:
 					
@@ -130,33 +144,19 @@ public class RequestHandler extends HttpServlet {
 								new JSONObject().accumulate("urlTitle", urlTitle).accumulate("message", result)
 								);
 				
-				//BufferedReader br = new BufferedReader(new FileReader("GCMRegId.txt"));
-				//String regId = br.readLine();
-				//br.close();
-				
-				
-				
-				
-				
-				
-				
 				String regId = "";
 				//regId = getRegId("vlnvv14@gmail.com");
 				//regId = getRegId(requestJson.getString("GCMregId"));
 				regId = requestJson.getString("GCMregId");
-				System.out.println("regId: " + regId);
+//				System.out.println("regId: " + regId);
 				
-				
-				
-				
-				//regId = "APA91bEdEcXbYFQ7_uhKQwBEkLDOcDNcJWVf3bsSmS9aWAEXyHwZv8PXyb0mbLmVJFoAAjtyG2wPk6zszahmYqd-sRJpUzC_-p3-S4iJNpuLA2u3GZCECtEELdoI1e9Yc0gF6xedVgBiKFGj-eR3sM5QWkJGjdJzRw";
 				Sender sender = new Sender(GOOGLE_SERVER_KEY);
 				Message msg = new Message.Builder().timeToLive(3600)
 						.delayWhileIdle(true)
 						.addData(MESSAGE_KEY, jObject.toString())
 						.build()
 						;
-				System.out.println(jObject.toString());
+//				System.out.println(jObject.toString());
 				Result status = sender.send(msg, regId, 5);
 				request.setAttribute("pushStatus", status.toString());
 				if(status.getErrorCodeName() != null) {
@@ -169,9 +169,6 @@ public class RequestHandler extends HttpServlet {
 			e.printStackTrace();
 		}		
 	}
-	
-	
-	
 	
 	
 	public void openDbConnection(String databaseName, String username, String password) throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException {

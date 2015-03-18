@@ -16,14 +16,17 @@ public class OpenTable {
 	}
 	
 	public static String test() {
+		System.out.println("Inside test()");
 		// Setup firefox binary to start in Xvfb        
 	    String Xport = System.getProperty(
 	            "lmportal.xvfb.id", ":100");
+	    System.out.println("Xport: " + Xport);
 	    final File firefoxPath = new File(System.getProperty(
 	            "lmportal.deploy.firefox.path", "/usr/bin/firefox"));
 	    FirefoxBinary firefoxBinary = new FirefoxBinary(firefoxPath);
 	    firefoxBinary.setEnvironmentProperty("DISPLAY", Xport);
 
+	    System.out.println("Before webdriver instance");
 	    // Start Firefox driver
 	    WebDriver driver = new FirefoxDriver(firefoxBinary, null);
 	    driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
@@ -36,6 +39,7 @@ public class OpenTable {
 	*/
 	    String result = "Temp";
 	    result = driver.getTitle();
+	    System.out.println("Got title");
 	    
 	    driver.quit();
 	    
