@@ -21,6 +21,8 @@ import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
 import com.mysql.jdbc.ResultSet;
 import com.org.chatup.model.NJTransit;
+import com.org.chatup.model.Yelp;
+import com.org.chatup.model.OpenTable;
 import com.org.chatup.model.Winescapes;
 
 /**
@@ -73,9 +75,14 @@ public class RequestHandler extends HttpServlet {
 			if(requestJson != null) {
 				String urlTitle = "";
 				String message = "";
+				String location_lat = "";
+				String location_long = "";
 				urlTitle = requestJson.getJSONObject("data").getString("urlTitle");
 				message = requestJson.getJSONObject("data").getString("message");
-				
+
+				location_lat = requestJson.getJSONObject("data").getString("lat");
+				location_long = requestJson.getJSONObject("data").getString("long");
+
 				switch(urlTitle) {
 				
 				case "Winescapes":
@@ -120,7 +127,14 @@ public class RequestHandler extends HttpServlet {
 						e.printStackTrace();
 					}
 					break;
-
+					
+				case "Opentable":
+					OpenTable opentable = new OpenTable(message);
+					result = opentable.test();
+					break;
+				case "Yelp":
+					Yelp yelp = new Yelp(message, location_lat, location_long);
+					result = yelp.getPlaces();
 				default:
 					
 					break;
@@ -144,7 +158,7 @@ public class RequestHandler extends HttpServlet {
 				//regId = getRegId("vlnvv14@gmail.com");
 				//regId = getRegId(requestJson.getString("GCMregId"));
 				regId = requestJson.getString("GCMregId");
-				System.out.println("regId: " + regId);
+//				System.out.println("regId: " + regId);
 				
 				
 				
@@ -156,7 +170,7 @@ public class RequestHandler extends HttpServlet {
 						.addData(MESSAGE_KEY, jObject.toString())
 						.build()
 						;
-				System.out.println(jObject.toString());
+//				System.out.println(jObject.toString());
 				Result status = sender.send(msg, regId, 5);
 				request.setAttribute("pushStatus", status.toString());
 				if(status.getErrorCodeName() != null) {
