@@ -79,9 +79,10 @@ public class RequestHandler extends HttpServlet {
 				String location_long = "";
 				urlTitle = requestJson.getJSONObject("data").getString("urlTitle");
 				message = requestJson.getJSONObject("data").getString("message");
-
-				location_lat = requestJson.getJSONObject("data").getString("lat");
-				location_long = requestJson.getJSONObject("data").getString("long");
+				//System.out.println(requestJson.getJSONObject("data"));
+				//System.out.println(requestJson.getJSONObject("location"));
+				location_lat = requestJson.getJSONObject("location").getString("lat");
+				location_long = requestJson.getJSONObject("location").getString("lng");
 
 				switch(urlTitle) {
 				
@@ -134,6 +135,7 @@ public class RequestHandler extends HttpServlet {
 					break;
 				case "Yelp":
 					Yelp yelp = new Yelp(message, location_lat, location_long);
+					yelp.loadCategories();
 					result = yelp.getPlaces();
 				default:
 					
