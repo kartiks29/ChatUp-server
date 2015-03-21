@@ -22,7 +22,11 @@ import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
 import com.mysql.jdbc.ResultSet;
 import com.org.chatup.model.NJTransit;
+<<<<<<< HEAD
 import com.org.chatup.model.Open311;
+=======
+import com.org.chatup.model.Yelp;
+>>>>>>> 0e396c1e567a7c99dccb9865b70d538084fb732a
 import com.org.chatup.model.OpenTable;
 import com.org.chatup.model.Winescapes;
 
@@ -77,9 +81,15 @@ public class RequestHandler extends HttpServlet {
 			if(requestJson != null) {
 				String urlTitle = "";
 				String message = "";
+				String location_lat = "";
+				String location_long = "";
 				urlTitle = requestJson.getJSONObject("data").getString("urlTitle");
 				message = requestJson.getJSONObject("data").getString("message");
-				
+				//System.out.println(requestJson.getJSONObject("data"));
+				//System.out.println(requestJson.getJSONObject("location"));
+				location_lat = requestJson.getJSONObject("location").getString("lat");
+				location_long = requestJson.getJSONObject("location").getString("lng");
+
 				switch(urlTitle) {
 				
 				case "Winescapes":
@@ -129,12 +139,19 @@ public class RequestHandler extends HttpServlet {
 					OpenTable opentable = new OpenTable(message);
 					result = opentable.test();
 					break;
+<<<<<<< HEAD
 				
 				case "Open311":
 					Open311 open311 = new Open311(message);
 					result = open311.sendRequest();
 					break;
 
+=======
+				case "Yelp":
+					Yelp yelp = new Yelp(message, location_lat, location_long);
+					yelp.loadCategories();
+					result = yelp.getPlaces();
+>>>>>>> 0e396c1e567a7c99dccb9865b70d538084fb732a
 				default:
 					
 					break;
@@ -149,6 +166,11 @@ public class RequestHandler extends HttpServlet {
 				//regId = getRegId(requestJson.getString("GCMregId"));
 				regId = requestJson.getString("GCMregId");
 //				System.out.println("regId: " + regId);
+<<<<<<< HEAD
+=======
+				
+				
+>>>>>>> 0e396c1e567a7c99dccb9865b70d538084fb732a
 				
 				Sender sender = new Sender(GOOGLE_SERVER_KEY);
 				Message msg = new Message.Builder().timeToLive(3600)
