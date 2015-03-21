@@ -22,11 +22,8 @@ import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
 import com.mysql.jdbc.ResultSet;
 import com.org.chatup.model.NJTransit;
-<<<<<<< HEAD
 import com.org.chatup.model.Open311;
-=======
 import com.org.chatup.model.Yelp;
->>>>>>> 0e396c1e567a7c99dccb9865b70d538084fb732a
 import com.org.chatup.model.OpenTable;
 import com.org.chatup.model.Winescapes;
 
@@ -139,21 +136,18 @@ public class RequestHandler extends HttpServlet {
 					OpenTable opentable = new OpenTable(message);
 					result = opentable.test();
 					break;
-<<<<<<< HEAD
 				
 				case "Open311":
 					Open311 open311 = new Open311(message);
 					result = open311.sendRequest();
 					break;
-
-=======
+					
 				case "Yelp":
 					Yelp yelp = new Yelp(message, location_lat, location_long);
 					yelp.loadCategories();
 					result = yelp.getPlaces();
->>>>>>> 0e396c1e567a7c99dccb9865b70d538084fb732a
+				
 				default:
-					
 					break;
 				}
 				
@@ -164,14 +158,7 @@ public class RequestHandler extends HttpServlet {
 				String regId = "";
 				//regId = getRegId("vlnvv14@gmail.com");
 				//regId = getRegId(requestJson.getString("GCMregId"));
-				regId = requestJson.getString("GCMregId");
-//				System.out.println("regId: " + regId);
-<<<<<<< HEAD
-=======
-				
-				
->>>>>>> 0e396c1e567a7c99dccb9865b70d538084fb732a
-				
+				regId = requestJson.getString("GCMregId");				
 				Sender sender = new Sender(GOOGLE_SERVER_KEY);
 				Message msg = new Message.Builder().timeToLive(3600)
 						.delayWhileIdle(true)
