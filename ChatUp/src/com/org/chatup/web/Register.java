@@ -27,14 +27,12 @@ public class Register extends HttpServlet {
 	
 	private static final long serialVersionUID = 1L;
 	private final String USERS_TABLE = "USERS";
-	private DataSource dataSource = null;
 	
 	public static final String DATABASE_NAME = "chatup";
 //	private final String USER_NAME = "chatup_admin";
 	public static final String USER_NAME = "root";
 //	private final String PASSWORD = "chatup_admin";
 	public static final String PASSWORD = "chatup";
-	private final String TABLE_NAME = "USERS";
 	private Connection connection = null;
 	
 	
@@ -103,11 +101,11 @@ public class Register extends HttpServlet {
 		try {
 			preparedStatement = (PreparedStatement) connection.prepareStatement(INSERT_QUERY);
 			
-			preparedStatement.setString(1, "name");
+			preparedStatement.setString(1, name);
 			Date dt = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 			String currentTime = sdf.format(dt);
-			preparedStatement.setString(2, "email");
+			preparedStatement.setString(2, email);
 			preparedStatement.setBoolean(3, true);
 			preparedStatement.setString(4, currentTime);
 			preparedStatement.setString(5, regId);

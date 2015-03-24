@@ -21,6 +21,7 @@ import com.google.android.gcm.server.Sender;
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
 import com.mysql.jdbc.ResultSet;
+import com.org.chatup.model.Drive;
 import com.org.chatup.model.NJTransit;
 import com.org.chatup.model.Open311;
 import com.org.chatup.model.Yelp;
@@ -80,6 +81,8 @@ public class RequestHandler extends HttpServlet {
 				String message = "";
 				String location_lat = "";
 				String location_long = "";
+				
+				
 				urlTitle = requestJson.getJSONObject("data").getString("urlTitle");
 				message = requestJson.getJSONObject("data").getString("message");
 				//System.out.println(requestJson.getJSONObject("data"));
@@ -104,7 +107,6 @@ public class RequestHandler extends HttpServlet {
 						njTransit.insertStationList(100);
 					} catch (InstantiationException | IllegalAccessException
 							| ClassNotFoundException | SQLException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 */					
@@ -146,8 +148,17 @@ public class RequestHandler extends HttpServlet {
 					Yelp yelp = new Yelp(message, location_lat, location_long);
 					yelp.loadCategories();
 					result = yelp.getPlaces();
+					break;
+					
+				case "Cloud Storage":
+					String access_token = requestJson.getString("access_token");
+					Drive drive = new Drive(message, access_token);
+//					Drive drive = new Drive("apple ssn comcast", "ya29.PwHB_O-vGNtGJJMxYx3a8q8VD6cbKY4cLjE06_EXkox5W9u-avz5FNhv26xTxo4VHB7hKSa5v9mjBA");
+					result = drive.getFiles();
+					break;
 				
 				default:
+					result = "This website is not supported right now.";
 					break;
 				}
 				
