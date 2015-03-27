@@ -41,7 +41,7 @@ public class Yelp {
 	Token accessToken;
 	 
 	public Yelp(String query, String location_lat, String location_long) {
-		this.query = query;
+		this.query = query.toLowerCase();
 		this.location_lat = location_lat;
 		this.location_long = location_long;
 		this.service =
@@ -60,34 +60,154 @@ public class Yelp {
 		}
 		
 		if(messageType == 0){ //find place based on location (lat, lng) + place name
-			String searchResponseJSON = searchForBusinessesByLocation(query, location_lat, location_long);
-			System.out.println(query + " " + location_lat + " " + location_long);
-			JSONParser parser = new JSONParser();
-			JSONObject response = null;
-			try {
-				response = (JSONObject) parser.parse(searchResponseJSON);
-				//System.out.println(searchResponseJSON);
-			} catch (ParseException pe) {
-				pe.printStackTrace();
-				return "Error: could not find the requested place";
-			}
+			return findNearestPlace();
+		}
+		else if(messageType == 1){ //find place based on location(string) + category
+			String[] queryAsWords = query.split("\\b in \\b");
+			if(queryAsWords.length < 2){
+				return "Use this syntax: Place Name (Ex. McDonald's)\nor Category in Location (Ex. Hotel in New York)";
 
-			JSONArray businesses = (JSONArray) response.get("businesses");
-			JSONObject firstBusiness = null;
-			try{
-				firstBusiness = (JSONObject) businesses.get(0);
-			}catch(Exception e){
-				//no results found
-				return "No Results found, Please try another query.";
 			}
-			String firstBusinessID = firstBusiness.get("id").toString();
+			String category = queryAsWords[0].trim();
+			String location = queryAsWords[1].trim();
+			
+			System.out.println(location + " " + category + " " + categoryMap.get(category.toLowerCase()));
+			if(categoryMap.get(category.toLowerCase()) == null){
+				//check best matching category
+				boolean categoryFound = false;
+				for (String cat: categoryMap.keySet()) {
+					if(computeLevenshteinDistance(cat, category.toLowerCase()) == 1){
+						category = cat;
+						categoryFound = true;
+						System.out.println(cat);
+						break;
+					}
+				    // ...
+				}
+				if(categoryFound == false){
+					String place = category;
+					return findPlaceInLocation(place, location);
+				}
+			}
+			return findCategoryInLocation(category, location);
+			
+
+		}else {
+			return "Use this syntax: Place Name (Ex. McDonald's)\nor Category in Location (Ex. Hotel in New York)";
+		}		
+	}
+	
+	private String findNearestPlace(){
+		String searchResponseJSON = searchForBusinessesByNearestLocation(query, location_lat, location_long);
+		System.out.println(query + " " + location_lat + " " + location_long);
+		JSONParser parser = new JSONParser();
+		JSONObject response = null;
+		try {
+			response = (JSONObject) parser.parse(searchResponseJSON);
+			//System.out.println(searchResponseJSON);
+		} catch (ParseException pe) {
+			pe.printStackTrace();
+			return "Error: could not find the requested place";
+		}
+
+		JSONArray businesses = (JSONArray) response.get("businesses");
+		JSONObject firstBusiness = null;
+		try{
+			firstBusiness = (JSONObject) businesses.get(0);
+		}catch(Exception e){
+			//no results found
+			return "No Results found, Please try another query.";
+		}
+		String firstBusinessID = firstBusiness.get("id").toString();
+		System.out.println(String.format(
+				"%s businesses found, querying business info for the top result \"%s\" ...",
+				businesses.size(), firstBusinessID));
+
+		// Select the first business and display business details
+		String businessResponseJSON = searchByBusinessId(firstBusinessID.toString());
+		System.out.println(String.format("Result for business \"%s\" found:", firstBusinessID));
+		//System.out.println(businessResponseJSON);
+		JSONObject businessJSON = null;
+		try{
+			businessJSON = (JSONObject) parser.parse(businessResponseJSON);
+		}catch (ParseException pe) {
+			pe.printStackTrace();
+			return "Error: could not find any place matching" + query;
+		}
+		//System.out.println(businessJSON);
+		String name = "";
+		if(businessJSON.get("name") != null){
+			name = businessJSON.get("name").toString();
+		}
+		String phone = "";
+		if(businessJSON.get("phone") != null){
+			phone = businessJSON.get("phone").toString();
+		}
+		String address = "";
+		try{
+			if(((JSONArray)((JSONObject)(businessJSON.get("location"))).get("address")).get(0) != null){
+				address = ((JSONArray)((JSONObject)(businessJSON.get("location"))).get("address")).get(0).toString()
+						+ ", " + ((JSONObject)(businessJSON.get("location"))).get("city").toString()
+						+ ", " + ((JSONObject)(businessJSON.get("location"))).get("state_code").toString()
+						+ ", " + ((JSONObject)(businessJSON.get("location"))).get("postal_code").toString();
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		String rating = "";
+		if(businessJSON.get("rating") != null){
+			rating = "Rating: " + businessJSON.get("rating").toString();
+		}
+		String numReviews = "";
+		if(businessJSON.get("review_count") != null){
+			numReviews = "Number of Reviews: " + businessJSON.get("review_count");
+		}
+		String tip = "";
+		if(businessJSON.get("snippet_text") != null){
+			tip = "Tip: " + businessJSON.get("snippet_text");
+		}
+		String isOpen = "";
+		if(businessJSON.get("is_closed") != null){
+			isOpen = (boolean) businessJSON.get("is_closed") ? "Closed" : "Open";
+		}
+		String resultString = name + "\n" + 
+								 phone + '\n' +
+								 address + "\n" +
+								 rating + "\n" +
+								 numReviews + "\n" +
+								 tip + "\n" +
+								 isOpen;
+		return resultString;
+
+	}
+	
+	private String findCategoryInLocation(String category, String location){
+		String searchResponseJSON = searchForBusinessesByLocationAndCategory(location, categoryMap.get(category.toLowerCase()));
+		System.out.println(location + " " + category);
+		JSONParser parser = new JSONParser();
+		JSONObject response = null;
+		try {
+			response = (JSONObject) parser.parse(searchResponseJSON);
+			//System.out.println(searchResponseJSON);
+		} catch (ParseException pe) {
+			pe.printStackTrace();
+			return "Error: could not find the requested place";
+		}
+		JSONArray businesses = (JSONArray) response.get("businesses");
+		String resultString = "";
+		if(businesses == null){
+			return "No Results found, Please try another query.";
+		}
+		for(int i = 0; i< businesses.size(); i++){
+			JSONObject currBusiness = (JSONObject) businesses.get(i);
+			String currBusinessID = currBusiness.get("id").toString();
 			System.out.println(String.format(
-					"%s businesses found, querying business info for the top result \"%s\" ...",
-					businesses.size(), firstBusinessID));
+					"%s businesses found, querying business info for the %dth result \"%s\" ...",
+					businesses.size(), i+1, currBusinessID));
 
 			// Select the first business and display business details
-			String businessResponseJSON = searchByBusinessId(firstBusinessID.toString());
-			System.out.println(String.format("Result for business \"%s\" found:", firstBusinessID));
+			String businessResponseJSON = searchByBusinessId(currBusinessID.toString());
+			System.out.println(String.format("Result for business \"%s\" found:", currBusinessID));
 			//System.out.println(businessResponseJSON);
 			JSONObject businessJSON = null;
 			try{
@@ -128,107 +248,97 @@ public class Yelp {
 			if(businessJSON.get("is_closed") != null){
 				isOpen = (boolean) businessJSON.get("is_closed") ? "Closed" : "Open";
 			}
-			String resultString = name + "\n" + 
+			resultString += "\n" + name + "\n" + 
 									 phone + '\n' +
 									 address + "\n" +
 									 rating + "\n" +
 									 numReviews + "\n" +
 									 tip + "\n" +
-									 isOpen;
-
-		    return resultString;
-			
+									 isOpen + "\n";
 		}
-		else if(messageType == 1){ //find place based on location(string) + category
-			String[] queryAsWords = query.split("\\b in \\b");
-			String category = queryAsWords[0].trim();
-			String location = queryAsWords[1].trim();
-			
-			System.out.println(location + " " + category + " " + categoryMap.get(category.toLowerCase()));
-			if(categoryMap.get(category.toLowerCase()) == null){
-				return "Category not found, please try another category.";
-			}
-			String searchResponseJSON = searchForBusinessesByLocationAndCategory(location, categoryMap.get(category.toLowerCase()));
-			System.out.println(location + " " + category);
-			JSONParser parser = new JSONParser();
-			JSONObject response = null;
-			try {
-				response = (JSONObject) parser.parse(searchResponseJSON);
-				//System.out.println(searchResponseJSON);
-			} catch (ParseException pe) {
-				pe.printStackTrace();
-				return "Error: could not find the requested place";
-			}
-			JSONArray businesses = (JSONArray) response.get("businesses");
-			String resultString = "";
-			if(businesses == null){
-				return "No Results found, Please try another query.";
-			}
-			for(int i = 0; i< businesses.size(); i++){
-				JSONObject currBusiness = (JSONObject) businesses.get(i);
-				String currBusinessID = currBusiness.get("id").toString();
-				System.out.println(String.format(
-						"%s businesses found, querying business info for the %dth result \"%s\" ...",
-						businesses.size(), i+1, currBusinessID));
+		System.out.println(resultString);
+
+	    return resultString;
+	}
 	
-				// Select the first business and display business details
-				String businessResponseJSON = searchByBusinessId(currBusinessID.toString());
-				System.out.println(String.format("Result for business \"%s\" found:", currBusinessID));
-				//System.out.println(businessResponseJSON);
-				JSONObject businessJSON = null;
-				try{
-					businessJSON = (JSONObject) parser.parse(businessResponseJSON);
-				}catch (ParseException pe) {
-					pe.printStackTrace();
-					return "Error: could not find any place matching" + query;
-				}
-				//System.out.println(businessJSON);
-				String name = "";
-				if(businessJSON.get("name") != null){
-					name = businessJSON.get("name").toString();
-				}
-				String phone = "";
-				if(businessJSON.get("phone") != null){
-					phone = businessJSON.get("phone").toString();
-				}
-				String address = "";
-				if(((JSONArray)((JSONObject)(businessJSON.get("location"))).get("address")).get(0) != null){
-					address = ((JSONArray)((JSONObject)(businessJSON.get("location"))).get("address")).get(0).toString()
-							+ ", " + ((JSONObject)(businessJSON.get("location"))).get("city").toString()
-							+ ", " + ((JSONObject)(businessJSON.get("location"))).get("state_code").toString()
-							+ ", " + ((JSONObject)(businessJSON.get("location"))).get("postal_code").toString();
-				}
-				String rating = "";
-				if(businessJSON.get("rating") != null){
-					rating = "Rating: " + businessJSON.get("rating").toString();
-				}
-				String numReviews = "";
-				if(businessJSON.get("review_count") != null){
-					numReviews = "Number of Reviews: " + businessJSON.get("review_count");
-				}
-				String tip = "";
-				if(businessJSON.get("snippet_text") != null){
-					tip = "Tip: " + businessJSON.get("snippet_text");
-				}
-				String isOpen = "";
-				if(businessJSON.get("is_closed") != null){
-					isOpen = (boolean) businessJSON.get("is_closed") ? "Closed" : "Open";
-				}
-				resultString += "\n" + name + "\n" + 
-										 phone + '\n' +
-										 address + "\n" +
-										 rating + "\n" +
-										 numReviews + "\n" +
-										 tip + "\n" +
-										 isOpen + "\n";
+	private String findPlaceInLocation(String place, String location){
+		String searchResponseJSON = searchForBusinessesByLocation(location, place);
+		System.out.println(location + " " + place);
+		JSONParser parser = new JSONParser();
+		JSONObject response = null;
+		try {
+			response = (JSONObject) parser.parse(searchResponseJSON);
+			//System.out.println(searchResponseJSON);
+		} catch (ParseException pe) {
+			pe.printStackTrace();
+			return "Error: could not find the requested place";
+		}
+		JSONArray businesses = (JSONArray) response.get("businesses");
+		String resultString = "";
+		if(businesses == null){
+			return "No Results found, Please try another query.";
+		}
+		for(int i = 0; i< businesses.size(); i++){
+			JSONObject currBusiness = (JSONObject) businesses.get(i);
+			String currBusinessID = currBusiness.get("id").toString();
+			System.out.println(String.format(
+					"%s businesses found, querying business info for the %dth result \"%s\" ...",
+					businesses.size(), i+1, currBusinessID));
+
+			// Select the first business and display business details
+			String businessResponseJSON = searchByBusinessId(currBusinessID.toString());
+			System.out.println(String.format("Result for business \"%s\" found:", currBusinessID));
+			//System.out.println(businessResponseJSON);
+			JSONObject businessJSON = null;
+			try{
+				businessJSON = (JSONObject) parser.parse(businessResponseJSON);
+			}catch (ParseException pe) {
+				pe.printStackTrace();
+				return "Error: could not find any place matching" + query;
 			}
-			System.out.println(resultString);
+			//System.out.println(businessJSON);
+			String name = "";
+			if(businessJSON.get("name") != null){
+				name = businessJSON.get("name").toString();
+			}
+			String phone = "";
+			if(businessJSON.get("phone") != null){
+				phone = businessJSON.get("phone").toString();
+			}
+			String address = "";
+			if(((JSONArray)((JSONObject)(businessJSON.get("location"))).get("address")).get(0) != null){
+				address = ((JSONArray)((JSONObject)(businessJSON.get("location"))).get("address")).get(0).toString()
+						+ ", " + ((JSONObject)(businessJSON.get("location"))).get("city").toString()
+						+ ", " + ((JSONObject)(businessJSON.get("location"))).get("state_code").toString()
+						+ ", " + ((JSONObject)(businessJSON.get("location"))).get("postal_code").toString();
+			}
+			String rating = "";
+			if(businessJSON.get("rating") != null){
+				rating = "Rating: " + businessJSON.get("rating").toString();
+			}
+			String numReviews = "";
+			if(businessJSON.get("review_count") != null){
+				numReviews = "Number of Reviews: " + businessJSON.get("review_count");
+			}
+			String tip = "";
+			if(businessJSON.get("snippet_text") != null){
+				tip = "Tip: " + businessJSON.get("snippet_text");
+			}
+			String isOpen = "";
+			if(businessJSON.get("is_closed") != null){
+				isOpen = (boolean) businessJSON.get("is_closed") ? "Closed" : "Open";
+			}
+			resultString += "\n" + name + "\n" + 
+									 phone + '\n' +
+									 address + "\n" +
+									 rating + "\n" +
+									 numReviews + "\n" +
+									 tip + "\n" +
+									 isOpen + "\n";
+		}
+		System.out.println(resultString);
 
-		    return resultString;
-
-		}else {
-			return "Use this syntax: Place Name (Ex. McDonald's)\nor Category in Location (Ex. Hotel in New York)";
-		}		
+	    return resultString;
 	}
 	
 	public void loadCategories(){
@@ -260,7 +370,7 @@ public class Yelp {
 		return sendRequestAndGetResponse(request);
 	}
 	
-	public String searchForBusinessesByLocation(String term, String lat, String lng) {
+	public String searchForBusinessesByNearestLocation(String term, String lat, String lng) {
 		OAuthRequest request = createOAuthRequest(YELP_SEARCH_PATH);
 		request.addQuerystringParameter("term", term);
 		request.addQuerystringParameter("ll", lat + "," + lng);
@@ -268,6 +378,14 @@ public class Yelp {
 		return sendRequestAndGetResponse(request);
 	}
 
+	public String searchForBusinessesByLocation(String location, String term) {
+		OAuthRequest request = createOAuthRequest(YELP_SEARCH_PATH);
+		request.addQuerystringParameter("term", term);
+		request.addQuerystringParameter("location", location);
+		request.addQuerystringParameter("limit", String.valueOf(SEARCH_LIMIT));
+		return sendRequestAndGetResponse(request);
+	}
+	
 	public String searchByBusinessId(String businessID) {
 		OAuthRequest request = createOAuthRequest(BUSINESS_PATH + "/" + businessID);
 		return sendRequestAndGetResponse(request);
