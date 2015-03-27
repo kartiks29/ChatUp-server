@@ -27,6 +27,7 @@ import com.org.chatup.model.Open311;
 import com.org.chatup.model.Yelp;
 import com.org.chatup.model.OpenTable;
 import com.org.chatup.model.Winescapes;
+import com.org.chatup.model.NextBus;
 
 /**
  * Servlet implementation class RequestHandler
@@ -156,7 +157,10 @@ public class RequestHandler extends HttpServlet {
 //					Drive drive = new Drive("apple ssn comcast", "ya29.PwHB_O-vGNtGJJMxYx3a8q8VD6cbKY4cLjE06_EXkox5W9u-avz5FNhv26xTxo4VHB7hKSa5v9mjBA");
 					result = drive.getFiles();
 					break;
-				
+				case "NextBus":
+					NextBus nxtbus = new NextBus(message, location_lat, location_long);
+					result = nxtbus.getNextBus();
+					break;
 				default:
 					result = "This website is not supported right now.";
 					break;
@@ -165,7 +169,8 @@ public class RequestHandler extends HttpServlet {
 				jObject.accumulate("data",
 								new JSONObject().accumulate("urlTitle", urlTitle).accumulate("message", result)
 								);
-				
+				PrintWriter output = response.getWriter();
+				output.write(jObject.toString());
 				String regId = "";
 				//regId = getRegId("vlnvv14@gmail.com");
 				//regId = getRegId(requestJson.getString("GCMregId"));
